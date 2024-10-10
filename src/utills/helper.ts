@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import * as fs from "fs";
+import fs from "fs";
 import fastcsv from "fast-csv";
 import { Buffer } from "node:buffer";
 import { Parser } from "json2csv"; // Import the json2csv library
@@ -87,7 +87,6 @@ export const downloadCsvFile = (
   fileName = `lead-data-${Date.now()}.csv`
 ) => {
   try {
-    // Define headers for the CSV file
     const headers = [
       "firstName",
       "lastName",
@@ -105,19 +104,76 @@ export const downloadCsvFile = (
       "profileUrl",
     ];
 
+    // Sanitize data to handle undefined or missing fields
+    const sanitizedData = data.map((item) => ({
+      firstName: item.firstName || "",
+      lastName: item.lastName || "",
+      fullName: item.fullName || "",
+      geoRegion: item.geoRegion || "",
+      currentPosition: item.currentPosition || "",
+      companyName: item.companyName || "",
+      tenureAtCompany: item.tenureAtCompany || "",
+      startedOn: item.startedOn || "",
+      title: item.title || "",
+      tenureAtPosition: item.tenureAtPosition || "",
+      companyIndustry: item.companyIndustry || "",
+      companyLocation: item.companyLocation || "",
+      companyUrl: item.companyUrl || "",
+      profileUrl: item.profileUrl || "",
+    }));
+
     // Create a parser object with the headers
     const json2csvParser = new Parser({ fields: headers });
 
     // Convert JSON data to CSV
-    const csv = json2csvParser.parse(data);
+    const csv = json2csvParser.parse(sanitizedData);
+
+    // Log the CSV output for debugging
+    console.log("Generated CSV:\n", csv);
 
     // Write the CSV string to a file
-    fs.writeFileSync(fileName, csv);
+    fs.writeFileSync(fileName, csv, "utf8");
 
-    console.log("CSV file created successfully");
+    console.log("CSV file created successfully at", fileName);
   } catch (error) {
     console.error("Error creating CSV file:", error);
   }
+  // try {
+  //   const ws = fs.createWriteStream(fileName);
+  //   const headers = [
+  //     "firstName",
+  //     "lastName",
+  //     "fullName",
+  //     "geoRegion",
+  //     "currentPosition",
+  //     "companyName",
+  //     "tenureAtCompany",
+  //     "startedOn",
+  //     "title",
+  //     "tenureAtPosition",
+  //     "companyIndustry",
+  //     "companyLocation",
+  //     "companyUrl",
+  //     "profileUrl",
+  //   ];
+
+  //   console.log(data, "==============");
+  //   // Create a parser object with the headers
+  //   const json2csvParser = new Parser({ fields: headers });
+  //   console.log(json2csvParser, "=======parse=======");
+  //   // Convert JSON data to CSV
+  //   const csv = json2csvParser.parse(data);
+
+  //   console.log(csv, "=======================csv");
+
+  //   // Write the CSV string to a file
+  //    fs.writeFileSync(fileName, csv, 'utf8');
+  //   // fs.writeFileSync(fileName, csv);
+
+  //   console.log("CSV file created successfully");
+  // } catch (error) {
+  //   console.error("Error creating CSV file:", error);
+  // }
 };
 
 // Extract query parameters and build LinkedIn API URL
@@ -132,12 +188,15 @@ export const extractParameters = ({
 }) => {
   const queryParams = new URL(url).searchParams;
   const savedSearchId = queryParams.get("savedSearchId");
+  const recentSearchId = queryParams.get("recentSearchId");
 
-  if (!savedSearchId || !sessionId) {
-    throw new Error("Missing savedSearchId or sessionId");
-  }
+  // if (!savedSearchId || !sessionId) {
+  //   throw new Error("Missing savedSearchId or sessionId");
+  // }
 
-  return `https://www.linkedin.com/sales-api/salesApiLeadSearch?q=savedSearchId&start=${start}&count=25&savedSearchId=${savedSearchId}&trackingParam=(sessionId:${sessionId})&decorationId=com.linkedin.sales.deco.desktop.searchv2.LeadSearchResult-14`;
+  return recentSearchId
+    ? `https://www.linkedin.com/sales-api/salesApiLeadSearch?q=recentSearchId&start=${start}&count=25&recentSearchId=${recentSearchId}&trackingParam=(sessionId:${sessionId})&decorationId=com.linkedin.sales.deco.desktop.searchv2.LeadSearchResult-14`
+    : `https://www.linkedin.com/sales-api/salesApiLeadSearch?q=savedSearchId&start=${start}&count=25&savedSearchId=${savedSearchId}&trackingParam=(sessionId:${sessionId})&decorationId=com.linkedin.sales.deco.desktop.searchv2.LeadSearchResult-14`;
 };
 
 // Extract session ID from URL

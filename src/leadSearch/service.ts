@@ -1,4 +1,6 @@
-import axios from 'axios'; // Import axios
+import { OrganizationModel, IOrganization } from "../model/organizationModels";
+import SubscriptionModel, { ISubscription } from "../model/subscriptionModels";
+import CookiesStoreModel from "../model/cookies";
 import {
   convertArrayToCSV,
   decryptValue,
@@ -6,49 +8,63 @@ import {
   encryptValue,
   extractParameters,
   extractSessionId,
-} from '../utills/helper';
-
-import { connectToDatabase } from '../db/connection';
-
-// Define LinkedInData interface
-interface LinkedInData {
-  paging: {
-    total: number;
-  };
-  elements: any[];
-}
+} from "../utills/helper";
 
 export class LinkedInService {
-  // Extract data from LinkedIn, download CSV file, and store data in the database
-  static async extractData(urn: any) {
+  static async extractData(urn: string, organizationId: string) {
     try {
-      const db = await connectToDatabase();
-      const collection = db.collection('CookiesStoreModel');
-      const encryptedCookie = await collection.findOne({ profileUrn: urn });
+      const organization = await OrganizationModel.findById(
+        organizationId
+      ).populate("subscriptionId");
+      if (!organization) {
+        throw new Error("Organization not found");
+      }
 
-      if (!encryptedCookie) throw new Error('No cookie found for the given URN');
+      const subscription = organization.subscriptionId as ISubscription;
+      if (!subscription) {
+        throw new Error("No subscription found for the organization");
+      }
 
-      const cookie = decryptValue(encryptedCookie['cookie']);
+      const maxLimit = parseInt(subscription.maxLimit);
+      const usedLimit = parseInt(organization.usedLimit || "0");
+      const remainingLimit = maxLimit - usedLimit;
 
-      const queryParams = cookie[14]['value'];
+      if (remainingLimit <= 0) {
+        throw new Error(
+          "Subscription limit exceeded. You cannot download any more data."
+        );
+      }
+
+      const encryptedCookie = await CookiesStoreModel.findOne({
+        profileUrn: urn,
+      });
+      if (!encryptedCookie) {
+        throw new Error("No cookie found for the given URN");
+      }
+
+      const cookie = decryptValue(encryptedCookie.cookie);
+      const queryParams = cookie[14 | 15].value;
+
       const headers = {
-        'Csrf-Token': cookie[6]['value'],
-        Cookie: cookie[17]['value'],
-        'X-Restli-Protocol-Version': '2.0.0',
+        "Csrf-Token": cookie[4].value,
+        Cookie: cookie[cookie.length - 1].value,
+        "X-Restli-Protocol-Version": "2.0.0",
       };
 
       let resultData: any[] = [];
       const pageSize = 25;
 
-      // Fetch initial data and explicitly cast to LinkedInData type
-      const initialData = await this.fetchLinkedInData(queryParams, headers, 0) as { success: boolean; data: LinkedInData };
+      // Fetch initial data
+      const initialData = await this.fetchLinkedInData(queryParams, headers, 0);
 
       if (initialData?.success) {
-        const totalCount = initialData.data.paging.total;
-        resultData.push(...initialData.data.elements);
+        const totalAvailable = initialData.data.paging.total;
+        const downloadLimit = Math.min(totalAvailable, remainingLimit);
 
-        // Determine total pages (limit to 100 pages)
-        const totalPages = Math.min(Math.ceil(totalCount / pageSize), 100);
+        resultData.push(...initialData.data.elements.slice(0, downloadLimit));
+
+        // Determine total pages
+        const totalPages = Math.ceil(downloadLimit / pageSize);
 
         // Fetch additional paginated data
         await this.fetchPaginatedData(
@@ -56,50 +72,84 @@ export class LinkedInService {
           headers,
           totalPages,
           pageSize,
-          resultData
+          resultData,
+          downloadLimit
+        );
+
+        // Update organization usage
+        const newUsedLimit = usedLimit + resultData.length;
+        await OrganizationModel.findByIdAndUpdate(
+          organizationId,
+          { usedLimit: newUsedLimit.toString() },
+          { new: true }
         );
 
         // Convert data to CSV and download
-        const csvContent = convertArrayToCSV(resultData);
+        const csvContent: any = convertArrayToCSV(resultData);
         downloadCsvFile(csvContent);
-        console.log('File created');
+        console.log(`File created with ${resultData.length} entries`);
+
+        let message = "";
+        if (totalAvailable > downloadLimit) {
+          message = "Limit exceeded. Some data could not be downloaded.";
+        } else if (newUsedLimit >= maxLimit) {
+          message =
+            "You have reached your subscription limit. No more data can be downloaded.";
+        } else {
+          message = `You can still download ${
+            maxLimit - newUsedLimit
+          } more entries.`;
+        }
+
+        return {
+          downloadedCount: resultData.length,
+          remainingCount: maxLimit - newUsedLimit,
+          message: message,
+        };
       } else {
-        throw new Error('Failed to fetch initial data');
+        throw new Error("Failed to fetch initial data");
       }
     } catch (error) {
-      console.error('Error in extractData:', error.message);
+      console.error("Error in extractData:", error.message);
+      throw error;
     }
   }
 
-  // Fetch paginated LinkedIn data
   private static async fetchPaginatedData(
     queryParams: string,
     headers: any,
     totalPages: number,
     pageSize: number,
-    resultData: any[]
+    resultData: any[],
+    downloadLimit: number
   ) {
     for (let i = 1; i < totalPages; i++) {
+      if (resultData.length >= downloadLimit) break;
+
       const paginatedData = await this.fetchLinkedInData(
         queryParams,
         headers,
         i * pageSize
-      ) as { success: boolean; data: LinkedInData };
-
+      );
       if (paginatedData?.success) {
-        resultData.push(...paginatedData.data.elements);
+        const remainingSlots = downloadLimit - resultData.length;
+        resultData.push(
+          ...paginatedData.data.elements.slice(0, remainingSlots)
+        );
       } else {
         break;
       }
     }
   }
 
-  // API call to LinkedIn for fetching leads/records (25 records per request)
   private static async fetchLinkedInData(
     url: string,
     headers: any,
     start: number
   ) {
+    console.log(url, "url");
+    console.log(headers, "headers");
+
     try {
       const fetchUrl = extractParameters({
         url,
@@ -107,18 +157,22 @@ export class LinkedInService {
         start,
       });
 
-      // Using axios for HTTP requests
-      const response = await axios.get(fetchUrl, { headers });
+      console.log(url, "url");
+      console.log(extractSessionId(url), "session id");
+      console.log(start, "start");
 
-      if (response.status !== 200) {
-        console.error('Failed to fetch data:', response.statusText);
+      const response = await fetch(fetchUrl, { method: "GET", headers });
+
+      if (!response.ok) {
+        console.error("Failed to fetch data:", response.statusText);
         return { success: false, data: null };
       }
 
-      const data = response.data;
+      const data = await response.json();
+
       return { success: true, data };
     } catch (error) {
-      console.error('Error in fetchLinkedInData:', error.message);
+      console.error("Error in fetchLinkedInData:", error.message);
       return { success: false, data: null };
     }
   }
@@ -127,16 +181,14 @@ export class LinkedInService {
   static async storeCookies(cookie: any, urn: any) {
     try {
       const encryptedCookie = encryptValue(JSON.stringify(JSON.parse(cookie)));
-      const db = await connectToDatabase();
-      const collection = db.collection('CookiesStoreModel');
-
-      await collection.updateOne(
+      
+      await CookiesStoreModel.updateOne(
         { profileUrn: urn }, // Query to find the document
         { $set: { cookie: encryptedCookie } }, // Update operation
         { upsert: true } // Insert if not found
       );
     } catch (error) {
-      console.error('Error in storeCookies:', error.message);
+      console.error("Error in storeCookies:", error.message);
     }
   }
 }
