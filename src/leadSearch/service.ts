@@ -9,6 +9,7 @@ import {
   encryptValue,
   extractParameters,
   extractSessionId,
+  findCookieValue,
 } from "../utills/helper";
 
 export class LinkedInService {
@@ -44,11 +45,13 @@ export class LinkedInService {
       }
 
       const cookie = decryptValue(encryptedCookie.cookie);
-      const queryParams = cookie[14 ].value;
-      console.log(cookie, "cooki");
+      const csrfToken = findCookieValue(cookie, "Csrf-Token");
+      const queryParams = findCookieValue(cookie, "Referer");
+      const cookieValue = findCookieValue(cookie, "Cookie");
+
       const headers = {
-        "Csrf-Token": cookie[4].value,
-        Cookie: cookie[cookie.length - 1].value,
+        "Csrf-Token": csrfToken,
+        Cookie: cookieValue,
         "X-Restli-Protocol-Version": "2.0.0",
       };
 
@@ -158,10 +161,6 @@ export class LinkedInService {
         start,
       });
 
-      console.log(url, "url");
-      console.log(extractSessionId(url), "session id");
-      console.log(start, "start");
-
       const response = await axios.get(fetchUrl, { headers });
 
       if (response.status !== 200) {
@@ -184,7 +183,6 @@ export class LinkedInService {
     console.log(urn, "urn");
     try {
       const encryptedCookie = encryptValue(JSON.stringify(JSON.parse(cookie)));
-
       await CookiesStoreModel.updateOne(
         { profileUrn: urn }, // Query to find the document
         { $set: { cookie: encryptedCookie } }, // Update operation

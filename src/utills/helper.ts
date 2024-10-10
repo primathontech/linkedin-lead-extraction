@@ -138,42 +138,6 @@ export const downloadCsvFile = (
   } catch (error) {
     console.error("Error creating CSV file:", error);
   }
-  // try {
-  //   const ws = fs.createWriteStream(fileName);
-  //   const headers = [
-  //     "firstName",
-  //     "lastName",
-  //     "fullName",
-  //     "geoRegion",
-  //     "currentPosition",
-  //     "companyName",
-  //     "tenureAtCompany",
-  //     "startedOn",
-  //     "title",
-  //     "tenureAtPosition",
-  //     "companyIndustry",
-  //     "companyLocation",
-  //     "companyUrl",
-  //     "profileUrl",
-  //   ];
-
-  //   console.log(data, "==============");
-  //   // Create a parser object with the headers
-  //   const json2csvParser = new Parser({ fields: headers });
-  //   console.log(json2csvParser, "=======parse=======");
-  //   // Convert JSON data to CSV
-  //   const csv = json2csvParser.parse(data);
-
-  //   console.log(csv, "=======================csv");
-
-  //   // Write the CSV string to a file
-  //    fs.writeFileSync(fileName, csv, 'utf8');
-  //   // fs.writeFileSync(fileName, csv);
-
-  //   console.log("CSV file created successfully");
-  // } catch (error) {
-  //   console.error("Error creating CSV file:", error);
-  // }
 };
 
 // Extract query parameters and build LinkedIn API URL
@@ -265,3 +229,8 @@ export const downloadCsvFileCompanySearch = (
     console.error("Error creating Company CSV file:", error);
   }
 };
+
+export function findCookieValue(cookieArray, name) {
+  const cookieObject = cookieArray.find(cookie => new RegExp(`^${name}$`).test(cookie.name));
+  return cookieObject ? cookieObject.value : null;
+}
