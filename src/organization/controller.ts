@@ -1,5 +1,5 @@
 import { ISubscription } from "../model/subscriptionModels";
-import { IOrganization } from "../model/organizationModels";
+import { IOrganization, OrganizationModel } from "../model/organizationModels";
 import { OrganizationService } from "./service";
 import { Request, Response } from "express";
 
@@ -35,8 +35,9 @@ export const createOrganization = async (req: Request, res: Response) => {
     const { email } = req.body;
     const newOrganizationBody: IOrganization = req.body;
 
-    const existingOrganization =
-      await OrganizationService.getOrganizationByEmail(email);
+    const existingOrganization = await OrganizationModel.findOne({
+      email: email,
+    });
 
     if (existingOrganization) {
       return res.status(400).json({

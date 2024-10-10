@@ -13,18 +13,7 @@ export class OrganizationService {
     }
   }
 
-  static async getOrganizationByEmail(emaill: string) {
-    try {
-      const organization = await OrganizationModel.findById({ emaill: emaill });
-      if (!organization) return { success: true, data: organization };
-    } catch (error) {
-      console.error("Error in UserService.getUsers:", error.message);
-      return { success: false, data: null };
-    }
-  }
-
   static async createOrganization(organization: IOrganization) {
-    console.log(organization, "Organization");
     try {
       const newOrganization = OrganizationModel.create(organization);
       return { success: true, data: newOrganization };
