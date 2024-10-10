@@ -1,3 +1,4 @@
+import axios from 'axios'; // Import axios
 import {
   convertArrayToCSV,
   decryptValue,
@@ -9,6 +10,14 @@ import {
 
 import { connectToDatabase } from '../db/connection';
 
+// Define LinkedInData interface
+interface LinkedInData {
+  paging: {
+    total: number;
+  };
+  elements: any[];
+}
+
 export class LinkedInService {
   // Extract data from LinkedIn, download CSV file, and store data in the database
   static async extractData(urn: any) {
@@ -17,22 +26,22 @@ export class LinkedInService {
       const collection = db.collection('CookiesStoreModel');
       const encryptedCookie = await collection.findOne({ profileUrn: urn });
 
-      if (!encryptedCookie)
-        throw new Error('No cookie found for the given URN');
+      if (!encryptedCookie) throw new Error('No cookie found for the given URN');
 
       const cookie = decryptValue(encryptedCookie['cookie']);
-      const queryParams = cookie[15]['value'];
+
+      const queryParams = cookie[14]['value'];
       const headers = {
         'Csrf-Token': cookie[6]['value'],
-        Cookie: cookie[18]['value'],
+        Cookie: cookie[17]['value'],
         'X-Restli-Protocol-Version': '2.0.0',
       };
 
       let resultData: any[] = [];
       const pageSize = 25;
 
-      // Fetch initial data
-      const initialData = await this.fetchLinkedInData(queryParams, headers, 0);
+      // Fetch initial data and explicitly cast to LinkedInData type
+      const initialData = await this.fetchLinkedInData(queryParams, headers, 0) as { success: boolean; data: LinkedInData };
 
       if (initialData?.success) {
         const totalCount = initialData.data.paging.total;
@@ -75,7 +84,8 @@ export class LinkedInService {
         queryParams,
         headers,
         i * pageSize
-      );
+      ) as { success: boolean; data: LinkedInData };
+
       if (paginatedData?.success) {
         resultData.push(...paginatedData.data.elements);
       } else {
@@ -96,14 +106,16 @@ export class LinkedInService {
         sessionId: extractSessionId(url),
         start,
       });
-      const response = await fetch(fetchUrl, { method: 'GET', headers });
 
-      if (!response.ok) {
+      // Using axios for HTTP requests
+      const response = await axios.get(fetchUrl, { headers });
+
+      if (response.status !== 200) {
         console.error('Failed to fetch data:', response.statusText);
         return { success: false, data: null };
       }
 
-      const data = await response.json();
+      const data = response.data;
       return { success: true, data };
     } catch (error) {
       console.error('Error in fetchLinkedInData:', error.message);
