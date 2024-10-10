@@ -1,6 +1,7 @@
 import { OrganizationModel, IOrganization } from "../model/organizationModels";
 import SubscriptionModel, { ISubscription } from "../model/subscriptionModels";
 import CookiesStoreModel from "../model/cookies";
+import axios from "axios";
 import {
   convertArrayToCSV,
   decryptValue,
@@ -43,8 +44,8 @@ export class LinkedInService {
       }
 
       const cookie = decryptValue(encryptedCookie.cookie);
-      const queryParams = cookie[14 | 15].value;
-
+      const queryParams = cookie[14 ].value;
+      console.log(cookie, "cooki");
       const headers = {
         "Csrf-Token": cookie[4].value,
         Cookie: cookie[cookie.length - 1].value,
@@ -161,14 +162,14 @@ export class LinkedInService {
       console.log(extractSessionId(url), "session id");
       console.log(start, "start");
 
-      const response = await fetch(fetchUrl, { method: "GET", headers });
+      const response = await axios.get(fetchUrl, { headers });
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         console.error("Failed to fetch data:", response.statusText);
         return { success: false, data: null };
       }
 
-      const data = await response.json();
+      const data = await response.data;
 
       return { success: true, data };
     } catch (error) {
@@ -179,9 +180,11 @@ export class LinkedInService {
 
   // Store cookies in the database (encrypt the cookies)
   static async storeCookies(cookie: any, urn: any) {
+    console.log(cookie, "store cookies");
+    console.log(urn, "urn");
     try {
       const encryptedCookie = encryptValue(JSON.stringify(JSON.parse(cookie)));
-      
+
       await CookiesStoreModel.updateOne(
         { profileUrn: urn }, // Query to find the document
         { $set: { cookie: encryptedCookie } }, // Update operation

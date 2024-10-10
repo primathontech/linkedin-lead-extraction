@@ -13,7 +13,7 @@ export const getData = async (req: Request, res: Response) => {
 
   const urn = req.query.urn;
   const organizationId = req.query.organizationId;
-  
+
   if (!urn || !organizationId) {
     return res.status(400).send({ error: "URN is required" });
   }
@@ -30,13 +30,15 @@ export const getData = async (req: Request, res: Response) => {
 
 // Store Cookies
 export const storeCookies = async (req: Request, res: Response) => {
-  const { cookies, urn } = req.query;
-
-  if (!cookies || !urn) {
-    return res.status(400).send({ error: "Both cookies and URN are required" });
-  }
-
   try {
+    const { cookies, urn } = req.query;
+
+    if (!cookies || !urn) {
+      return res
+        .status(400)
+        .send({ error: "Both cookies and URN are required" });
+    }
+
     await LinkedInService.storeCookies(cookies, urn);
     res.status(200).send({
       message: "Cookie successfully received and stored in the database",
