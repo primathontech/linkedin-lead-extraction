@@ -127,14 +127,9 @@ export const downloadCsvFile = (
 
     // Convert JSON data to CSV
     const csv = json2csvParser.parse(sanitizedData);
-
-    // Log the CSV output for debugging
-    console.log("Generated CSV:\n", csv);
-
     // Write the CSV string to a file
-    fs.writeFileSync(fileName, csv, "utf8");
-
-    console.log("CSV file created successfully at", fileName);
+    // fs.writeFileSync(fileName, csv, "utf8");
+    return csv;
   } catch (error) {
     console.error("Error creating CSV file:", error);
   }

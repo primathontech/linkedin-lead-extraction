@@ -109,6 +109,7 @@ export class LinkedInService {
           downloadedCount: resultData.length,
           remainingCount: maxLimit - newUsedLimit,
           message: message,
+          csvContent: csvContent,
         };
       } else {
         throw new Error("Failed to fetch initial data");
@@ -151,9 +152,6 @@ export class LinkedInService {
     headers: any,
     start: number
   ) {
-    console.log(url, "url");
-    console.log(headers, "headers");
-
     try {
       const fetchUrl = extractParameters({
         url,
@@ -179,8 +177,6 @@ export class LinkedInService {
 
   // Store cookies in the database (encrypt the cookies)
   static async storeCookies(cookie: any, urn: any) {
-    console.log(cookie, "store cookies");
-    console.log(urn, "urn");
     try {
       const encryptedCookie = encryptValue(JSON.stringify(JSON.parse(cookie)));
       await CookiesStoreModel.updateOne(

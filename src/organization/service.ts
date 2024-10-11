@@ -4,9 +4,8 @@ import { OrganizationModel, IOrganization } from "../model/organizationModels";
 export class OrganizationService {
   static async getOrganization(organizationId: string) {
     try {
-      const organization = await OrganizationModel.findById({
-        _id: organizationId,
-      });
+      const organization = await OrganizationModel.findById(organizationId);
+
       return organization;
     } catch (error) {
       console.error("Error in UserService.getUsers:", error.message);
@@ -15,7 +14,22 @@ export class OrganizationService {
 
   static async createOrganization(organization: IOrganization) {
     try {
-      const newOrganization = OrganizationModel.create(organization);
+      const { subscriptionId } = organization;
+      if (!subscriptionId) {
+        return { success: false, message: "Subscription Id Not Found" };
+      }
+      const subscription = await SubscriptionModel.findById({
+        _id: subscriptionId,
+      });
+      const subscriptionDay = subscription.expireInDay;
+      const today = new Date();
+      today.setDate(today.getDate() + Number(subscriptionDay));
+      const expiryDate = today.toISOString();
+
+      const newOrganization: any = await OrganizationModel.create({
+        ...organization,
+        subscriptionExpireAt: expiryDate,
+      });
       return { success: true, data: newOrganization };
     } catch (error) {
       return { success: false };
@@ -38,72 +52,10 @@ export class OrganizationService {
     }
   }
 
-  static async createSubscription(id: string, body: ISubscription) {
+  static async createSubscription(body: ISubscription) {
     try {
       const newSubscription = await SubscriptionModel.create(body);
-
-      if (newSubscription) {
-        const organization = await OrganizationModel.findByIdAndUpdate(
-          { _id: id },
-          { $set: { subscriptionId: newSubscription._id } },
-          { new: true }
-        );
-
-        if (!organization) {
-          return { success: false };
-        }
-        return {
-          success: true,
-          data: organization,
-          message: "Organization Subscribed Successfully",
-        };
-      }
-      return { success: true, data: newSubscription };
-    } catch (error) {
-      console.log(error.message);
-      return { success: false };
-    }
-  }
-
-  static async increaseLimitSubscription(id: string, maxLimit: string) {
-    try {
-      const organization = await OrganizationModel.findById({ _id: id });
-      console.log(organization, "checking subscription");
-      if (!organization) {
-        return { success: false, message: "Organization Does Not Exists" };
-      }
-
-      if (organization) {
-        const subscription = organization.subscriptionId;
-        if (subscription) {
-          const updatedSubscription = await SubscriptionModel.findByIdAndUpdate(
-            { _id: subscription },
-            {
-              $set: {
-                maxLimit: maxLimit,
-              },
-            },
-            { new: true }
-          );
-          if (updatedSubscription) {
-            return updatedSubscription;
-          } else {
-            return { success: false };
-          }
-        } else {
-          return {
-            success: false,
-            message: "Organization Have No Subscription",
-            data: null,
-          };
-        }
-      } else {
-        return {
-          success: false,
-          message: "Organization Does Not Exist",
-          data: null,
-        };
-      }
+      return newSubscription;
     } catch (error) {
       console.log(error.message);
       return { success: false };
@@ -113,46 +65,45 @@ export class OrganizationService {
   static async renewSubscription(id: string) {
     try {
       const organization = await OrganizationModel.findById({ _id: id });
-      console.log(organization, "checking subscription");
       if (!organization) {
         return { success: false, message: "Organization Does Not Exists" };
       }
 
-      if (organization) {
-        const subscription = organization.subscriptionId;
-        if (subscription) {
-          const updatedSubscription = await OrganizationModel.findByIdAndUpdate(
-            { _id: id },
-            {
-              $set: {
-                userCount: "0",
-              },
+      const subscriptionId = organization.subscriptionId;
+
+      const subscription = await SubscriptionModel.findById(subscriptionId);
+
+      const subscriptionDay = subscription.expireInDay;
+      const today = new Date();
+      today.setDate(today.getDate() + Number(subscriptionDay));
+      const expiryDate = today.toISOString();
+
+      if (subscriptionId) {
+        const updatedSubscription = await OrganizationModel.findByIdAndUpdate(
+          { _id: id },
+          {
+            $set: {
+              usedLimit: "0",
+              subscriptionExpireAt: expiryDate,
             },
-            { new: true }
-          );
-          if (updatedSubscription) {
-            console.log(updatedSubscription, "scccccccccccccccccccc");
-            return { success: true, data: updatedSubscription };
-          } else {
-            return { success: false, data: updatedSubscription };
-          }
+          },
+          { new: true }
+        );
+        if (updatedSubscription) {
+          return { success: true, data: updatedSubscription };
         } else {
-          return {
-            success: false,
-            message: "Organization Have No Subscript",
-            data: null,
-          };
+          return { success: false, data: updatedSubscription };
         }
       } else {
         return {
           success: false,
-          message: "Organization Does Not Exists",
+          message: "Organization Have No Subscription",
           data: null,
         };
       }
     } catch (error) {
       console.log(error.message);
-      return { success: false };
+      return { success: false, message: error.message };
     }
   }
 }

@@ -47,6 +47,16 @@ export const checkSubscriptionAndLimit = async (
         message: "Subscription not found for this organization",
       });
     }
+    // Check if the subscription has expired
+    const currentDate = new Date();
+    const subscriptionExpireAt = new Date(organization.subscriptionExpireAt);
+
+    if (subscriptionExpireAt < currentDate) {
+      return res.status(403).json({
+        success: false,
+        message: "Your subscription has expired",
+      });
+    }
 
     if (Number(organization.usedLimit) >= Number(subscription.maxLimit)) {
       return res.status(403).json({
@@ -54,6 +64,7 @@ export const checkSubscriptionAndLimit = async (
         message: "User count reached the limit for this subscription",
       });
     }
+
     next();
   } catch (error) {
     return res.status(500).json({

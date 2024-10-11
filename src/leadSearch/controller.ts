@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { LinkedInService } from "./service";
+import { downloadCsvFile } from "../utills/helper";
 
 // Helper function to send consistent error responses
 const sendErrorResponse = (res: Response, error: any, message: string) => {
@@ -19,9 +20,15 @@ export const getData = async (req: Request, res: Response) => {
   }
 
   try {
-    await LinkedInService.extractData(urn as string, organizationId as string);
-    res.status(200).send({
-      message: "Data successfully received and stored in the database",
+    const response = await LinkedInService.extractData(
+      urn as string,
+      organizationId as string
+    );
+
+    return res.status(200).send({
+      message: `${response.message}`,
+      limit: "limit",
+      csvContent: downloadCsvFile(response.csvContent),
     });
   } catch (error) {
     sendErrorResponse(res, error, "Error storing data in the database");

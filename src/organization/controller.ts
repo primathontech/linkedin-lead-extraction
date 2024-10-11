@@ -1,4 +1,4 @@
-import { ISubscription } from "../model/subscriptionModels";
+import SubscriptionModel, { ISubscription } from "../model/subscriptionModels";
 import { IOrganization, OrganizationModel } from "../model/organizationModels";
 import { OrganizationService } from "./service";
 import { Request, Response } from "express";
@@ -35,7 +35,7 @@ export const createOrganization = async (req: Request, res: Response) => {
     const { email } = req.body;
     const newOrganizationBody: IOrganization = req.body;
 
-    const existingOrganization = await OrganizationModel.findOne({
+    const existingOrganization: any = await OrganizationModel.findOne({
       email: email,
     });
 
@@ -61,7 +61,7 @@ export const createOrganization = async (req: Request, res: Response) => {
     return res.status(201).json({
       success: true,
       message: "Organization Created Successfully",
-      data: newOrganization,
+      data: newOrganization.data,
     });
   } catch (error) {
     return res.status(500).json({
@@ -103,28 +103,18 @@ export const updateOrganization = async (req: Request, res: Response) => {
 
 export const createSubscription = async (req: Request, res: Response) => {
   try {
-    const { organizationId } = req.params;
     const newSubscriptionBody: ISubscription = req.body;
 
-    if (!organizationId || !newSubscriptionBody) {
-      return res.status(400).json({
-        success: false,
-        message: "Organization Id and Subscription Data are required",
-      });
-    }
+    console.log(newSubscriptionBody, "body");
 
     const newSubscription = await OrganizationService.createSubscription(
-      organizationId,
       newSubscriptionBody
     );
-
-    console.log(newSubscription, "ddddddddddddddddddddd");
-    console.log(newSubscriptionBody, "bbbbbbbbbbbbb", organizationId);
 
     if (!newSubscription) {
       return res.status(404).json({
         success: false,
-        message: "Bad Request",
+        message: "Subs",
       });
     }
 
@@ -137,44 +127,6 @@ export const createSubscription = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: "Some error occurred while creating subscription",
-    });
-  }
-};
-
-export const increseLimitSubscription = async (req: Request, res: Response) => {
-  try {
-    const { organizationId } = req.params;
-    const { maxLimit } = req.body;
-
-    if (!organizationId || !maxLimit) {
-      return res.status(400).json({
-        success: false,
-        message: "Organization Id and MaxLimit are required",
-      });
-    }
-
-    const increaseSubscription =
-      await OrganizationService.increaseLimitSubscription(
-        organizationId,
-        maxLimit
-      );
-
-    if (!increaseSubscription) {
-      return res.status(404).json({
-        success: false,
-        message: "Increase Limit failed",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Increase Limit Successfully",
-      data: increaseSubscription,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Some error occurred while renewing subscription",
     });
   }
 };
