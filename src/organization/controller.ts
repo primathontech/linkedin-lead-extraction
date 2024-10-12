@@ -3,6 +3,44 @@ import { IOrganization, OrganizationModel } from "../model/organizationModels";
 import { OrganizationService } from "./service";
 import { Request, Response } from "express";
 
+export const getAllOrganizations = async (req: Request, res: Response) => {
+  try {
+    const organizations = await OrganizationModel.aggregate([
+      {
+        $lookup: {
+          from: "subscriptionmodels",
+          localField: "subscriptionId",
+          foreignField: "_id",
+          as: "subscription",
+        },
+      },
+      {
+        $unwind: {
+          path: "$subscription",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+    ]);
+    if (!organizations) {
+      return res.status(200).json({
+        success: true,
+        message: "Organizations Not found",
+        data: [],
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Organizations fetched successfully",
+      data: organizations,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Some error occurred while fetching organizations",
+    });
+  }
+};
+
 export const getOrganization = async (req: Request, res: Response) => {
   try {
     const { organizationId } = req.params;
@@ -54,7 +92,7 @@ export const createOrganization = async (req: Request, res: Response) => {
     if (!newOrganization) {
       return res.status(400).json({
         success: false,
-        message: "Bad Request",
+        message: "Organization not created",
       });
     }
 

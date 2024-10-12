@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createOrganization,
   createSubscription,
+  getAllOrganizations,
   getOrganization,
   renewSubscription,
   updateOrganization,
@@ -9,6 +10,7 @@ import {
 
 const organizationRoutes = Router();
 
+organizationRoutes.get("/organization",getAllOrganizations)
 organizationRoutes.get("/organization/:organizationId", getOrganization);
 organizationRoutes.post("/create-organization", createOrganization);
 organizationRoutes.put("/update", updateOrganization);
