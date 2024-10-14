@@ -162,7 +162,6 @@ export class LinkedInService {
       const response = await axios.get(fetchUrl, { headers });
 
       if (response.status !== 200) {
-        console.error("Failed to fetch data:", response.statusText);
         return { success: false, data: null };
       }
 

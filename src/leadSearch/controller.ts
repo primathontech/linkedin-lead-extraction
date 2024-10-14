@@ -10,11 +10,10 @@ const sendErrorResponse = (res: Response, error: any, message: string) => {
 
 // Get Data from LinkedIn
 export const getData = async (req: Request, res: Response) => {
-  console.log("Inside getData");
 
   const urn = req.query.urn;
   const organizationId = req.query.organizationId;
-
+  
   if (!urn || !organizationId) {
     return res.status(400).send({ error: "URN is required" });
   }

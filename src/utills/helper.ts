@@ -81,12 +81,32 @@ export const convertArrayToCSV = (data: any[]) => {
   return rows;
 };
 
+function formatDate(date) {
+  const options = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  };
+  const formattedDate = date
+    .toLocaleString("en-IN", options)
+    .replace(/[/]/g, "-");
+
+  return formattedDate.replace(/:/g, "-").replace(/, /g, " ");
+}
+
 // Function to create a CSV file and handle download
 export const downloadCsvFile = (
   data: any[],
   fileName = `lead-data-${Date.now()}.csv`
 ) => {
   try {
+    const dateTime = formatDate(new Date());
+
     const headers = [
       "firstName",
       "lastName",
@@ -102,6 +122,7 @@ export const downloadCsvFile = (
       "companyLocation",
       "companyUrl",
       "profileUrl",
+      "date",
     ];
 
     // Sanitize data to handle undefined or missing fields
@@ -120,6 +141,7 @@ export const downloadCsvFile = (
       companyLocation: item.companyLocation || "",
       companyUrl: item.companyUrl || "",
       profileUrl: item.profileUrl || "",
+      date: dateTime,
     }));
 
     // Create a parser object with the headers
@@ -148,14 +170,13 @@ export const extractParameters = ({
   const queryParams = new URL(url).searchParams;
   const savedSearchId = queryParams.get("savedSearchId");
   const recentSearchId = queryParams.get("recentSearchId");
-
-  // if (!savedSearchId || !sessionId) {
-  //   throw new Error("Missing savedSearchId or sessionId");
-  // }
+  const recentSearchParam = queryParams.get("query");
 
   return recentSearchId
     ? `https://www.linkedin.com/sales-api/salesApiLeadSearch?q=recentSearchId&start=${start}&count=25&recentSearchId=${recentSearchId}&trackingParam=(sessionId:${sessionId})&decorationId=com.linkedin.sales.deco.desktop.searchv2.LeadSearchResult-14`
-    : `https://www.linkedin.com/sales-api/salesApiLeadSearch?q=savedSearchId&start=${start}&count=25&savedSearchId=${savedSearchId}&trackingParam=(sessionId:${sessionId})&decorationId=com.linkedin.sales.deco.desktop.searchv2.LeadSearchResult-14`;
+    : savedSearchId
+    ? `https://www.linkedin.com/sales-api/salesApiLeadSearch?q=savedSearchId&start=${start}&count=25&savedSearchId=${savedSearchId}&trackingParam=(sessionId:${sessionId})&decorationId=com.linkedin.sales.deco.desktop.searchv2.LeadSearchResult-14`
+    : `https://www.linkedin.com/sales-api/salesApiLeadSearch?q=searchQuery&query=${recentSearchParam}&start=${start}&count=25&trackingParam=(sessionId:${sessionId})&decorationId=com.linkedin.sales.deco.desktop.searchv2.LeadSearchResult-14`;
 };
 
 // Extract session ID from URL
@@ -226,6 +247,8 @@ export const downloadCsvFileCompanySearch = (
 };
 
 export function findCookieValue(cookieArray, name) {
-  const cookieObject = cookieArray.find(cookie => new RegExp(`^${name}$`).test(cookie.name));
+  const cookieObject = cookieArray.find((cookie) =>
+    new RegExp(`^${name}$`).test(cookie.name)
+  );
   return cookieObject ? cookieObject.value : null;
 }

@@ -61,7 +61,7 @@ export const checkSubscriptionAndLimit = async (
     if (Number(organization.usedLimit) >= Number(subscription.maxLimit)) {
       return res.status(403).json({
         success: false,
-        message: "User count reached the limit for this subscription",
+        message: "Download Lead reached the limit for this subscription",
       });
     }
 
