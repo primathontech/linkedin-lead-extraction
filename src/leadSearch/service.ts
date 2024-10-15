@@ -56,7 +56,7 @@ export class LinkedInService {
       };
 
       let resultData: any[] = [];
-      const pageSize = 25;
+      const pageSize = 50;
 
       // Fetch initial data
       const initialData = await this.fetchLinkedInData(queryParams, headers, 0);
