@@ -56,7 +56,7 @@ export class LinkedInService {
       };
 
       let resultData: any[] = [];
-      const pageSize = 25;
+      const pageSize = 100;
 
       // Fetch initial data
       const initialData = await this.fetchLinkedInData(queryParams, headers, 0);
@@ -64,7 +64,6 @@ export class LinkedInService {
       if (initialData?.success) {
         const totalAvailable = initialData.data.paging.total;
         const downloadLimit = Math.min(totalAvailable, remainingLimit);
-
         resultData.push(...initialData.data.elements.slice(0, downloadLimit));
 
         // Determine total pages
