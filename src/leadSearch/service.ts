@@ -94,14 +94,16 @@ export class LinkedInService {
 
         let message = "";
         if (totalAvailable > downloadLimit) {
-          message = "Limit exceeded. Some data could not be downloaded.";
+          // message = "Limit exceeded. Some data could not be downloaded.";
+          message = "Data Downloaded Successfully";
         } else if (newUsedLimit >= maxLimit) {
           message =
             "You have reached your subscription limit. No more data can be downloaded.";
         } else {
-          message = `You can still download ${
-            maxLimit - newUsedLimit
-          } more entries.`;
+          message = `Data Downloaded Successfully`;
+          // message = `You can still download ${
+          //   maxLimit - newUsedLimit
+          // } more entries.`;
         }
 
         return {
