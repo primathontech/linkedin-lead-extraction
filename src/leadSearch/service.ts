@@ -49,6 +49,8 @@ export class LinkedInService {
       const queryParams = findCookieValue(cookie, "Referer");
       const cookieValue = findCookieValue(cookie, "Cookie");
 
+      console.log(cookie, "cookie");
+
       const headers = {
         "Csrf-Token": csrfToken,
         Cookie: cookieValue,
@@ -65,7 +67,13 @@ export class LinkedInService {
         const totalAvailable = initialData.data.paging.total;
         const downloadLimit = Math.min(totalAvailable, remainingLimit);
         resultData.push(...initialData.data.elements.slice(0, downloadLimit));
-
+        console.log(
+          resultData,
+          "resultData",
+          "and",
+          "result data length",
+          resultData.length
+        );
         // Determine total pages
         const totalPages = Math.ceil(downloadLimit / pageSize);
 
@@ -91,6 +99,8 @@ export class LinkedInService {
         const csvContent: any = convertArrayToCSV(resultData);
         downloadCsvFile(csvContent);
         console.log(`File created with ${resultData.length} entries`);
+
+        console.log(csvContent, "csv content");
 
         let message = "";
         if (totalAvailable > downloadLimit) {
@@ -160,17 +170,23 @@ export class LinkedInService {
         start,
       });
 
+      console.log(url, "url");
+      console.log(start, "start");
+      console.log(fetchUrl, "fetchUrl");
+      console.log(headers, "headers");
       const response = await axios.get(fetchUrl, { headers });
+
+      console.log(response, "get response");
 
       if (response.status !== 200) {
         return { success: false, data: null };
       }
 
       const data = await response.data;
-
+      console.log(data, "=========data=====================");
       return { success: true, data };
     } catch (error) {
-      console.error("Error in fetchLinkedInData:", error.message);
+      console.error("Error in fetchLinkedInData:", error);
       return { success: false, data: null };
     }
   }

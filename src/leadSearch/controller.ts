@@ -24,6 +24,8 @@ export const getData = async (req: Request, res: Response) => {
       organizationId as string
     );
 
+    console.log(response,"api response");
+
     return res.status(200).send({
       message: `${response.message}`,
       limit: "limit",
