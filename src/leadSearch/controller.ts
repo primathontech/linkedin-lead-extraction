@@ -25,6 +25,7 @@ export const getData = async (req: Request, res: Response) => {
     );
 
     console.log(response,"api response");
+    console.log(response.csvContent,"api csv content");
 
     return res.status(200).send({
       message: `${response.message}`,
