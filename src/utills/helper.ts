@@ -81,7 +81,7 @@ export const convertArrayToCSV = (data: any[]) => {
   return rows;
 };
 
-function formatDate(date) {
+export function formatDate(date) {
   const options = {
     year: "numeric",
     month: "2-digit",
@@ -150,7 +150,7 @@ export const downloadCsvFile = (
     // Convert JSON data to CSV
     const csv = json2csvParser.parse(sanitizedData);
     // Write the CSV string to a file
-    // fs.writeFileSync(fileName, csv, "utf8");
+    fs.writeFileSync(fileName, csv, "utf8");
     return csv;
   } catch (error) {
     console.error("Error creating CSV file:", error);

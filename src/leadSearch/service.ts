@@ -97,7 +97,7 @@ export class LinkedInService {
 
         // Convert data to CSV and download
         const csvContent: any = convertArrayToCSV(resultData);
-        downloadCsvFile(csvContent);
+        // downloadCsvFile(csvContent);
         console.log(`File created with ${resultData.length} entries`);
 
         console.log(csvContent, "csv content");
